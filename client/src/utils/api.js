@@ -1,0 +1,13 @@
+import axios from 'axios';
+
+const api = axios.create({ baseURL: '/api' });
+
+export async function fetchProblem(token) {
+  const res = await api.get(`/problem/${encodeURIComponent(token)}`);
+  return res.data;
+}
+
+export async function runCode({ code, language, tests }) {
+  const res = await api.post('/run', { code, language, tests });
+  return res.data;
+}

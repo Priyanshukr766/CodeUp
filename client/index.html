@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeUp — Codeforces Workspace</title>
+    <meta name="description" content="A LeetCode-style workspace for Codeforces. Fetch any problem, write code in Monaco, and run against all sample tests — no tab switching." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- MathJax for rendering Codeforces $$$...$$$  math -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath:  [['$$$', '$$$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'],   ['\\[', '\\]']],
+          processEscapes: true,
+        },
+        options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+        startup: { typeset: false },
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
