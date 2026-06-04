@@ -143,7 +143,6 @@ router.post('/', async (req, res) => {
           console.log(`[OC] Test ${i + 1} — compiler: ${compiler}`);
 
           const apiResp = await runOnTestCase(code, compiler, tc.input);
-
           const stdout   = apiResp.output ?? '';
           const stderr   = apiResp.error  ?? '';
           const expected = tc.expectedOutput ?? '';

@@ -1,0 +1,33 @@
+# Dependencies
+**/node_modules/
+
+# Build
+**/dist/
+**/build/
+
+# Environment files
+**/.env
+**/.env.*
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
+.vite/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
