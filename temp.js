@@ -19,6 +19,7 @@ function parseToken(raw) {
 }
 
 
-console.log(parseToken('https://codeforces.com/problemset/problem/115/A')); 
-console.log(parseToken('https://codeforces.com/contest/1984/problem/A')); 
-console.log(parseToken('115    A')); 
+console.log(parseToken("https://codeforces.com/problemset/problem/115/A")); 
+console.log(parseToken("https://codeforces.com/contest/1984/problem/A")); 
+console.log(parseToken("115    A")); 
+    

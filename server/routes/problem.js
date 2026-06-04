@@ -101,6 +101,7 @@ function parseToken(raw) {
 // ── GET /api/problem/:token ───────────────────────────────────────────────────
 router.get('/:token(*)', async (req, res) => {
   const raw = decodeURIComponent(req.params.token).trim();
+  
 /*
 raw stores the problem token/URL after decoding and cleaning it.
 Example:
