@@ -50,7 +50,8 @@ export default function App() {
   }, [showToast]);
 
   // ── Run code ────────────────────────────────────────────────────────────────
-  const handleRun = useCallback(async ({ code, language, tests }) => {
+  const handleRun = useCallback ( async ({ code, language, tests }) => {
+
     if (!tests.length) return;
     setRunning(true);
     setResults(null);
@@ -78,7 +79,7 @@ export default function App() {
       {/* ── Top Bar ───────────────────────────────────────────────────────── */}
       <header className="topbar">
         <a className="topbar-logo" href="/" aria-label="CodeUp Home">
-          <div className="topbar-logo-icon">C</div>
+          <img src="/image.png" alt="CodeUp Logo" className="topbar-logo-icon"/>
           <span className="topbar-logo-text">CodeUp</span>
         </a>
 

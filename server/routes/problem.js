@@ -72,7 +72,14 @@ async function fetchCFMeta(contestId, problemIndex) {
   }
 }
 
-// ── Token parser (mirrors cf_fetcher.py logic) ────────────────────────────────
+/*matlab user agar  
+1984A
+or
+https://codeforces.com/contest/1984/problem/A
+
+enter krega to ye func iss 1984 and A ko extract krega and obj mei send krega
+Result: ["1984", "A"]
+*/
 function parseToken(raw) {
   // Full CF URL
   const urlMatch = raw.match(
@@ -90,6 +97,22 @@ function parseToken(raw) {
 // ── GET /api/problem/:token ───────────────────────────────────────────────────
 router.get('/:token(*)', async (req, res) => {
   const raw = decodeURIComponent(req.params.token).trim();
+/*
+raw stores the problem token/URL after decoding and cleaning it.
+Example:
+User enters:
+https://codeforces.com/contest/1984/problem/A
+
+Sometimes URLs may contain encoded characters such as:
+1984%20A
+where `%20` represents a space.
+`decodeURIComponent()` converts encoded characters back to their original form:
+1984%20A  →  1984 A
+After decoding, `trim()` removes any unnecessary spaces from the beginning and end of the string.
+Example:
+"   1984 A   "  →  "1984 A"
+This ensures that `raw` contains a clean, usable input for further processing.
+*/
 
   if (!raw) {
     return res.status(400).json({ error: 'Problem token is required' });

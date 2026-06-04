@@ -87,8 +87,9 @@ class CFProblem:
     time_limit_ms: int                 # milliseconds
     memory_limit_mb: int               # megabytes
     tests: list[TestCase] = field(default_factory=list)
-    # Extra fields — not in CC schema but useful for downstream tools
-    statement: str = ""               # plain-text problem body
+    # Extended fields — HTML content (innerHTML from Codeforces DOM)
+    # Frontend renders these with dangerouslySetInnerHTML + DOMPurify + MathJax
+    statement: str = ""
     input_spec: str = ""
     output_spec: str = ""
     note: str = ""
@@ -259,15 +260,28 @@ async def _new_context(browser: Browser) -> BrowserContext:
 _CC_EXTRACTION_SCRIPT = r"""
 () => {
     // ── helpers ────────────────────────────────────────────────────────────
-    const text  = (sel, root) => {
+
+    // text() — for metadata we need to parse as numbers/strings (no HTML needed)
+    const text = (sel, root) => {
         const el = (root || document).querySelector(sel);
         return el ? el.innerText.trim() : '';
     };
-    const texts = (sel, root) => {
-        return [...(root || document).querySelectorAll(sel)]
-            .map(el => el.innerText.trim());
+
+    // html() — for content sections we want the FULL HTML so the frontend
+    // can render bold, italics, math ($$$...$$$), images, tables, etc.
+    // We clone the node and strip the section-title span before returning
+    // so the React component receives just the body content, not the label.
+    const html = (sel, root) => {
+        const el = (root || document).querySelector(sel);
+        if (!el) return '';
+        const clone = el.cloneNode(true);
+        // Remove the "Input" / "Output" / "Note" header span that CF injects
+        const title = clone.querySelector('.section-title');
+        if (title) title.remove();
+        return clone.innerHTML.trim();
     };
-    const attr  = (sel, a, root) => {
+
+    const attr = (sel, a, root) => {
         const el = (root || document).querySelector(sel);
         return el ? (el.getAttribute(a) || '').trim() : '';
     };
@@ -286,45 +300,44 @@ _CC_EXTRACTION_SCRIPT = r"""
     const ps = document.querySelector('.problem-statement');
     if (!ps) return { __error__: 'no_problem_statement' };
 
-    // ── title (CC: .problem-statement > .header > .title) ─────────────────
+    // ── title (use innerText — we only need the plain string) ─────────────
     const titleEl = ps.querySelector('.header .title');
     const name = titleEl ? titleEl.innerText.trim() : '';
 
-    // ── time limit  (CC strips "time limit per test" prefix) ──────────────
+    // ── time limit (innerText — parsed as a number) ───────────────────────
     const timeLimitRaw = text('.time-limit', ps);
-    // e.g. "time limit per test2 seconds" → extract the number
     const timeLimitMatch = timeLimitRaw.match(/([\d.]+)\s*second/i);
     const timeLimitMs = timeLimitMatch
         ? Math.round(parseFloat(timeLimitMatch[1]) * 1000)
         : 1000;
 
-    // ── memory limit ──────────────────────────────────────────────────────
+    // ── memory limit (innerText — parsed as a number) ─────────────────────
     const memLimitRaw = text('.memory-limit', ps);
     const memLimitMatch = memLimitRaw.match(/([\d.]+)\s*megabyte/i);
     const memoryLimitMb = memLimitMatch ? parseInt(memLimitMatch[1]) : 256;
 
-    // ── interactive flag (CC checks for "interaction" section) ────────────
+    // ── interactive flag ──────────────────────────────────────────────────
     const isInteractive =
         !!ps.querySelector('.section-title-interactions') ||
-        (text('.section-title', ps) || '').toLowerCase().includes('interact');
+        text('.section-title', ps).toLowerCase().includes('interact');
 
-    // ── statement body (CC: second child div of .problem-statement) ───────
+    // ── statement body — innerHTML to keep ALL formatting ─────────────────
+    // Codeforces structure: .problem-statement > div[0]=header, div[1]=body
+    // We grab innerHTML of div[1] so bold, $$$math$$$, <br>, <em> etc. survive.
     const statementDivs = ps.querySelectorAll(':scope > div');
     let statement = '';
     if (statementDivs.length >= 2) {
-        // Index 0 is always .header; index 1 is the problem body
-        statement = statementDivs[1].innerText.trim();
+        statement = statementDivs[1].innerHTML.trim();
     }
 
-    // ── input / output specification ──────────────────────────────────────
-    const inputSpec  = text('.input-specification',  ps);
-    const outputSpec = text('.output-specification', ps);
+    // ── input / output spec — innerHTML for full formatting ───────────────
+    const inputSpec  = html('.input-specification',  ps);
+    const outputSpec = html('.output-specification', ps);
 
-    // ── note section ──────────────────────────────────────────────────────
-    const note = text('.note', ps);
+    // ── note — innerHTML so example explanations render correctly ─────────
+    const note = html('.note', ps);
 
-    // ── sample test cases  (CC: .sample-test .input/output pre) ──────────
-    // Competitive Companion zips input blocks with output blocks by index
+    // ── sample test cases (innerText — these are code/data, not prose) ────
     const sampleRoot = ps.querySelector('.sample-test');
     const tests = [];
     if (sampleRoot) {
@@ -339,7 +352,7 @@ _CC_EXTRACTION_SCRIPT = r"""
         }
     }
 
-    // ── group / contest name (shown in the breadcrumb) ────────────────────
+    // ── group / contest name (breadcrumb) ─────────────────────────────────
     const breadcrumb = document.querySelector('#pageContent .rtable tr td a');
     const group = breadcrumb ? 'Codeforces - ' + breadcrumb.innerText.trim() : 'Codeforces';
 
@@ -609,12 +622,10 @@ async def _cli_main() -> None:
             print(f"  Output:\n{textwrap.indent(tc['output'], '    ')}")
 
         print("\n  -- Full JSON Payload --")
-        # Truncate large fields for CLI readability
-        display = dict(payload)
-        for field_name in ("statement", "inputSpec", "outputSpec", "note"):
-            if len(display.get(field_name, "")) > 200:
-                display[field_name] = display[field_name][:200] + "…"
-        print(json.dumps(display, indent=2, ensure_ascii=False))
+        # NOTE: statement/inputSpec/outputSpec/note now contain full HTML —
+        # they may be long in the terminal but are NOT truncated.
+        # The frontend uses this HTML directly with DOMPurify + MathJax.
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
 
     except (ValueError, RuntimeError) as exc:
         print(f"\n[cf_fetcher] ERROR: {exc}", file=sys.stderr)

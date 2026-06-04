@@ -6,117 +6,198 @@ dotenv.config();
 
 const router = Router();
 
-// ── Judge0 language IDs ───────────────────────────────────────────────────────
-const LANGUAGE_IDS = {
-  cpp:    54,  // C++ (GCC 9.2.0)  — C++17
-  c:      50,  // C (GCC 9.2.0)
-  java:   62,  // Java (OpenJDK 13.0.1)
-  python: 71,  // Python (3.8.1)
+// ── Base URL and API key ──────────────────────────────────────────────────────
+const OC_BASE_URL = 'https://api.onlinecompiler.io';
+const OC_KEY      = process.env.OC_KEY || '';
+
+/*
+  onlinecompiler.io compiler identifiers
+  Docs: https://onlinecompiler.io/docs#compilers
+
+  Our langId  →  compiler string sent to the API
+  ---------------------------------------------------
+  cpp         →  g++-15      (G++ 15, C++23 support)
+  c           →  gcc-15      (GCC 15)
+  java        →  openjdk-25  (OpenJDK 25)
+  python      →  python-3.14
+*/
+const COMPILER_MAP = {
+  cpp:    'g++-15',
+  c:      'gcc-15',
+  java:   'openjdk-25',
+  python: 'python-3.14',
 };
 
-const JUDGE0_URL = (process.env.JUDGE0_URL || 'https://judge0-ce.p.rapidapi.com').replace(/\/$/, '');
-const JUDGE0_KEY = process.env.JUDGE0_KEY || '';
+// ── Map onlinecompiler.io response to a human-readable status string ──────────
+/*
+  The API returns:
+    status    → "success" | "error"
+    exit_code → 0 = OK, 124 = timeout, 137 = killed (OOM), 139 = segfault
+    signal    → null | signal number (e.g. 9 for SIGKILL)
+    error     → stderr / compile errors (max 999 chars)
+    output    → stdout (max 999 chars)
 
-const judge0Headers = {
-  'content-type':    'application/json',
-  'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
-  'X-RapidAPI-Key':  JUDGE0_KEY,
-};
+  We map these to the same status labels the old Judge0 code used so the
+  frontend verdict cards don't need any changes.
+*/
+function resolveStatus(apiResp) {
+  const { status, exit_code, signal, error } = apiResp;
 
-// ── Submit a single test case to Judge0 and poll until done ──────────────────
-async function submitAndWait(code, language, input) {
-  const langId = LANGUAGE_IDS[language];
-  if (!langId) throw new Error(`Unsupported language: ${language}`);
+  if (status === 'success' && exit_code === 0) return 'Accepted';  // tentative — caller checks output
 
-  // Submit
-  console.log(`[Judge0] Calling API for language: ${language}`);
-  // API IS FIRED HERE
-  const submitRes = await axios.post(
-    `${JUDGE0_URL}/submissions?base64_encoded=true&wait=false`,
-    {
-      language_id:    langId,
-      source_code:    Buffer.from(code).toString('base64'),
-      stdin:          Buffer.from(input || '').toString('base64'),
-    },
-    { headers: judge0Headers, timeout: 10_000 }
-  );
+  if (exit_code === 124)               return 'Time Limit Exceeded';
+  if (exit_code === 137 || signal === 9)  return 'Memory / Time Limit Exceeded';
+  if (exit_code === 139 || signal === 11) return 'Runtime Error (SIGSEGV)';
 
-  const token = submitRes.data.token;
-  if (!token) throw new Error('Judge0 did not return a submission token');
-
-  // Poll until status is not "In Queue" (1) or "Processing" (2)
-  for (let i = 0; i < 15; i++) {
-    await new Promise(r => setTimeout(r, 800));
-    const pollRes = await axios.get(
-      `${JUDGE0_URL}/submissions/${token}?base64_encoded=true`,
-      { headers: judge0Headers, timeout: 8_000 }
-    );
-    const s = pollRes.data;
-    if (s.status.id > 2) {
-      // Decode base64 fields
-      const decode = b64 => b64 ? Buffer.from(b64, 'base64').toString('utf-8') : '';
-      return {
-        statusId:    s.status.id,
-        statusDesc:  s.status.description,
-        stdout:      decode(s.stdout),
-        stderr:      decode(s.stderr) || decode(s.compile_output),
-        time:        s.time   ? `${s.time}s`  : null,
-        memory:      s.memory ? `${s.memory} KB` : null,
-      };
-    }
+  // Non-zero exit without a signal usually means a runtime or compile error
+  if (error && error.trim().length > 0) {
+    // Heuristic: compile errors typically appear before any output
+    const looksLikeCompile = /error:|undefined reference|cannot|fatal/i.test(error);
+    return looksLikeCompile ? 'Compilation Error' : 'Runtime Error';
   }
-  throw new Error('Submission timed out waiting for Judge0');
+
+  return status === 'error' ? 'Runtime Error' : 'Accepted';
+}
+
+// ── Submit one test case to onlinecompiler.io (sync endpoint) ─────────────────
+/*
+  Uses POST /api/run-code-sync/ which blocks until execution finishes
+  (up to 30 s). Perfect for our use-case — no polling needed.
+
+  Request:
+    Authorization: <key>        (no "Bearer" prefix — docs confirmed)
+    Content-Type:  application/json
+    Body: { compiler, code, input }
+
+  Response 200: { output, error, status, exit_code, signal, time, total, memory }
+*/
+async function runOnTestCase(code, compiler, input) {
+  const response = await axios.post(
+    `${OC_BASE_URL}/api/run-code-sync/`,
+    {
+      compiler,
+      code,
+      input: input || '',
+    },
+    {
+      headers: {
+        'Authorization': OC_KEY,
+        'Content-Type':  'application/json',
+      },
+      timeout: 35_000,   // 35 s — slightly above their 30 s limit
+    }
+  );
+  return response.data;
 }
 
 // ── POST /api/run ─────────────────────────────────────────────────────────────
-// Body: { code, language, tests: [{ input, expectedOutput }] }
+/*
+  Request body (unchanged — same shape as before so the frontend works as-is):
+  {
+    code:     string,
+    language: 'cpp' | 'c' | 'java' | 'python',
+    tests:    [{ input: string, expectedOutput: string }]
+  }
+
+  Response (same shape as before):
+  [
+    {
+      id:       number,
+      passed:   boolean,
+      status:   string,   // e.g. "Accepted", "Wrong Answer", "Runtime Error"
+      stdout:   string,
+      stderr:   string,
+      expected: string,
+      time:     string,   // e.g. "0.03s"
+      memory:   string,   // e.g. "8192 KB"
+    },
+    ...
+  ]
+*/
 router.post('/', async (req, res) => {
   const { code, language, tests } = req.body;
 
-  if (!code)     return res.status(400).json({ error: 'code is required' });
-  if (!language) return res.status(400).json({ error: 'language is required' });
+  // ── Validation ──────────────────────────────────────────────────────────
+  if (!code)
+    return res.status(400).json({ error: 'code is required' });
+  if (!language)
+    return res.status(400).json({ error: 'language is required' });
   if (!Array.isArray(tests) || tests.length === 0)
     return res.status(400).json({ error: 'tests array is required' });
 
-  if (!JUDGE0_KEY || JUDGE0_KEY === 'YOUR_RAPIDAPI_KEY_HERE') {
+  const compiler = COMPILER_MAP[language];
+  if (!compiler)
+    return res.status(400).json({ error: `Unsupported language: ${language}` });
+
+  if (!OC_KEY) {
     return res.status(503).json({
-      error: 'Judge0 API key not configured. Set JUDGE0_KEY in server/.env',
+      error: 'OC_KEY not configured. Add OC_KEY=<your_key> to server/.env and restart.',
     });
   }
 
+  // ── Run all test cases concurrently ────────────────────────────────────
   try {
-    // Run all test cases concurrently (Judge0 free tier allows this)
     const results = await Promise.all(
       tests.map(async (tc, i) => {
         try {
-          const result = await submitAndWait(code, language, tc.input);
-          const expected = (tc.expectedOutput || '').trim();
-          const received = result.stdout.trim();
-          const passed   = result.statusId === 3 && received === expected;
+          console.log(`[OC] Test ${i + 1} — compiler: ${compiler}`);
+
+          const apiResp = await runOnTestCase(code, compiler, tc.input);
+
+          const stdout   = apiResp.output ?? '';
+          const stderr   = apiResp.error  ?? '';
+          const expected = tc.expectedOutput ?? '';
+
+          /*
+            "Accepted" means:
+              1. No runtime/compile error   (exit_code === 0)
+              2. stdout (trimmed) matches expectedOutput (trimmed)
+            If expectedOutput is empty (custom test with no expected output),
+            we mark it passed as long as exit_code is 0.
+          */
+          const exitOk   = apiResp.exit_code === 0;
+          const outputOk = expected.trim() === ''
+            ? true 
+            : stdout.trim() === expected.trim();
+          const passed   = exitOk && outputOk;
+
+          const statusStr = passed
+            ? 'Accepted'
+            : exitOk
+              ? 'Wrong Answer'
+              : resolveStatus(apiResp);
 
           return {
             id:       i + 1,
             passed,
-            status:   passed ? 'Accepted' : result.statusDesc,
-            stdout:   result.stdout,
-            stderr:   result.stderr,
-            expected: tc.expectedOutput,
-            time:     result.time,
-            memory:   result.memory,
+            status:   statusStr,
+            stdout,
+            stderr,
+            expected,
+            time:     apiResp.time   ? `${apiResp.time}s`   : null,
+            memory:   apiResp.memory ? `${apiResp.memory} KB` : null,
           };
+
         } catch (err) {
+          // Per-test error (network, timeout, etc.) — don't abort the batch
+          console.error(`[OC] Test ${i + 1} failed:`, err.message);
+          const msg = err.response?.data
+            ? JSON.stringify(err.response.data)
+            : err.message;
           return {
             id:     i + 1,
             passed: false,
             status: 'Error',
-            stderr: err.message,
-            expected: tc.expectedOutput,
+            stdout: '',
+            stderr: msg,
+            expected: tc.expectedOutput ?? '',
           };
         }
       })
     );
 
     res.json(results);
+
   } catch (err) {
     console.error('[run route]', err.message);
     res.status(500).json({ error: err.message });
