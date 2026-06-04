@@ -7,7 +7,7 @@ import axios from 'axios';
 const router = Router();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Path to the Python scraper (two levels up from server/routes/)
+// Path to the Python scraper
 const SCRAPER_PATH = resolve(__dirname, '../../cf_fetcher.py');
 const PYTHON_CMD   = process.platform === 'win32' ? 'python' : 'python3';
 
@@ -36,13 +36,15 @@ function runScraper(token) {
         const errLine = stderr.split('\n').find(l => l.includes('ERROR:')) || stderr;
         return reject(new Error(errLine.replace('[cf_fetcher] ERROR:', '').trim()));
       }
+
       // stdout contains log lines + the JSON blob — grab the JSON block
+      //now just trim off everything before the first "{" and only get the Json part
       const jsonStart = stdout.indexOf('{');
-      if (jsonStart === -1) {
+      if (jsonStart === -1) {//json ka start mila hi ni
         return reject(new Error('Scraper returned no JSON output'));
       }
       try {
-        resolve(JSON.parse(stdout.slice(jsonStart)));
+        resolve(JSON.parse(stdout.slice(jsonStart))); //just store everything after the first "{" ie start of json
       } catch (e) {
         reject(new Error('Failed to parse scraper JSON: ' + e.message));
       }
@@ -57,6 +59,8 @@ async function fetchCFMeta(contestId, problemIndex) {
     const { data } = await axios.get(url, { timeout: 8000 });
     if (data.status !== 'OK') return null;
 
+    //in the list of all problems, find the problem that matches the given contestId and problemIndex
+    //Example: if contestId is "1984" and problemIndex is "A", then find the problem with contestId "1984" and problemIndex "A"
     const problem = data.result.problems.find(
       p => String(p.contestId) === String(contestId) &&
            p.index.toUpperCase() === problemIndex.toUpperCase()

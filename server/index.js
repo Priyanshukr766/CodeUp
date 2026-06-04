@@ -9,6 +9,8 @@ import runRouter from './routes/run.js';
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Basically give the folder in which this current file is
+//eg: Here __dirname will be D:\CodeUp\server 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -23,5 +25,5 @@ app.use('/api/run', runRouter);
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.listen(PORT, () => {
-  console.log(`[CodeUp Server] Listening on http://localhost:${PORT}`);
+  console.log(` Server Listening on http://localhost:${PORT}`);
 });
