@@ -669,13 +669,35 @@ body {
 .add-test-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Verdict Panel ──────────────────────────────────────────────────────── */
+
+/* Drag handle — sits at the very top edge of the panel */
+.verdict-resize-handle {
+  height: 5px;
+  background: var(--border);
+  cursor: ns-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  position: relative;
+}
+.verdict-resize-handle:hover,
+.verdict-resize-handle.dragging {
+  background: var(--accent);
+}
+/* Widen the hit target without affecting layout */
+.verdict-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
 .verdict-panel {
   background: var(--bg-surface);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  max-height: 260px;
+  /* height is set inline from React state — no max-height cap here */
+  overflow: hidden;
 }
 
 .verdict-panel-header {
