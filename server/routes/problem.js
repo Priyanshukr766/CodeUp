@@ -85,13 +85,21 @@ enter krega to ye func iss 1984 and A ko extract krega and obj mei send krega
 Result: ["1984", "A"]
 */
 function parseToken(raw) {
-  // Full CF URL
-  const urlMatch = raw.match(
+  // Pattern 1: /contest/{id}/problem/{index}  or  /gym/{id}/problem/{index}
+  //   e.g. https://codeforces.com/contest/580/problem/C
+  const contestMatch = raw.match(
     /codeforces\.com\/(?:contest|gym)\/(\d+)\/problem\/([A-Za-z]\d*)/i
   );
-  if (urlMatch) return [urlMatch[1], urlMatch[2].toUpperCase()];
+  if (contestMatch) return [contestMatch[1], contestMatch[2].toUpperCase()];
 
-  // Compact token "1984A"
+  // Pattern 2: /problemset/problem/{id}/{index}  (NO second "/problem/" segment)
+  //   e.g. https://codeforces.com/problemset/problem/1324/F
+  const problemsetMatch = raw.match(
+    /codeforces\.com\/problemset\/problem\/(\d+)\/([A-Za-z]\d*)/i
+  );
+  if (problemsetMatch) return [problemsetMatch[1], problemsetMatch[2].toUpperCase()];
+
+  // Compact token "1984A" or "1984 A"
   const tokenMatch = raw.match(/^(\d+)\s*([A-Za-z]\d*)$/);
   if (tokenMatch) return [tokenMatch[1], tokenMatch[2].toUpperCase()];
 

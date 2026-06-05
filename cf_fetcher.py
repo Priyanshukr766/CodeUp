@@ -154,10 +154,20 @@ async def shutdown_browser() -> None:
 
 # Matches: "1984A"  "1984 A"  "1984a"  "100B1"
 _TOKEN_RE = re.compile(r"^(\d+)\s*([A-Za-z]\d*)$")
-# Matches direct CF URLs so callers can pass full URLs too
-_CF_URL_RE = re.compile(
+
+# Pattern 1: /contest/{id}/problem/{index}  or  /gym/{id}/problem/{index}
+#   e.g. https://codeforces.com/contest/580/problem/C
+_CF_CONTEST_URL_RE = re.compile(
     r"https?://(?:\w+\.)?codeforces\.(?:com|ml|es|net)"
-    r"/(?:contest|gym|problemset/problem|group/[^/]+/contest)/(\d+)/problem/([A-Za-z]\d*)",
+    r"/(?:contest|gym|group/[^/]+/contest)/(\d+)/problem/([A-Za-z]\d*)",
+    re.IGNORECASE,
+)
+
+# Pattern 2: /problemset/problem/{id}/{index}  (NO second "/problem/" segment)
+#   e.g. https://codeforces.com/problemset/problem/1324/F
+_CF_PROBLEMSET_URL_RE = re.compile(
+    r"https?://(?:\w+\.)?codeforces\.(?:com|ml|es|net)"
+    r"/problemset/problem/(\d+)/([A-Za-z]\d*)",
     re.IGNORECASE,
 )
 
@@ -165,21 +175,33 @@ _CF_URL_RE = re.compile(
 def _parse_problem_token(raw: str) -> tuple[str, str]:
     """
     Accept any of:
-      "1984A"  →  ("1984", "A")
-      "1984 A" →  ("1984", "A")
-      "https://codeforces.com/contest/1984/problem/A" → ("1984", "A")
+      "1984A"   →  ("1984", "A")
+      "1984 A"  →  ("1984", "A")
+      "https://codeforces.com/contest/1984/problem/A"     → ("1984", "A")
+      "https://codeforces.com/problemset/problem/1324/F"  → ("1324", "F")
     Returns (contest_id, problem_index).
     """
     raw = raw.strip()
-    m = _CF_URL_RE.search(raw)
+
+    # Try /contest/{id}/problem/{index} pattern first
+    m = _CF_CONTEST_URL_RE.search(raw)
     if m:
         return m.group(1), m.group(2).upper()
+
+    # Try /problemset/problem/{id}/{index} pattern
+    m = _CF_PROBLEMSET_URL_RE.search(raw)
+    if m:
+        return m.group(1), m.group(2).upper()
+
+    # Try compact token "1984A" / "1984 A"
     m = _TOKEN_RE.match(raw)
     if m:
         return m.group(1), m.group(2).upper()
+
     raise ValueError(
         f"Cannot parse problem token: {raw!r}\n"
-        "Expected formats: '1984A', '1984 A', or a full Codeforces URL."
+        "Expected formats: '1984A', '1984 A', '/contest/ID/problem/INDEX', "
+        "or '/problemset/problem/ID/INDEX'."
     )
 
 
