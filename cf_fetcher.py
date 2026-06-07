@@ -222,7 +222,7 @@ _STEALTH_UA = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/125.0.0.0 Safari/537.36"
 )
-
+#Browser:Mall, Browser context: SHopping cart Pages: Items in the cart
 async def _new_context(browser: Browser) -> BrowserContext:
     """
     Create a fresh BrowserContext that mirrors a real desktop browser session.
@@ -658,3 +658,42 @@ async def _cli_main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(_cli_main())
+
+
+
+
+"""
+[ START ] User calls: fetch_problem("1984A")
+   │
+   ├─ Step 1: Figure out the address
+   │    └─ Calls _parse_problem_token / _build_urls
+   │    └─ GETS: primary_url, fallback_url
+   │
+   ├─ Step 2: Get the Car (Singleton Browser)
+   │    └─ Calls _get_browser()
+   │    └─ GETS: The invisible Chromium engine
+   │
+   ├─ Step 3: Get the Driver (Disguised Context)
+   │    └─ Calls _new_context(browser)
+   │    └─ GETS: The fake ID, screen size, and ad-blockers
+   │
+   ├─ Step 4: Open a New Tab
+   │    └─ Calls context.new_page()
+   │    └─ GETS: A blank page ready to surf
+   │
+   ├─ Step 5: Drive to the Club (Navigation & Bypass)
+   │    └─ Calls _navigate_with_fallback(...)
+   │         │
+   │         ├─ Try Primary Door: Calls _go(primary_url)
+   │         ├─ Wait in Line: Calls _wait_for_cf() (Checks for Cloudflare)
+   │         ├─ Check the Room: Calls _is_error_page() (Checks for 404)
+   │         │
+   │         └─ (If primary fails, repeats the above for fallback_url)
+   │    └─ GETS: The final_url where the problem actually lives
+   │
+   ├─ Step 6: Execute the Mission (DOM Extraction)
+   │    └─ Calls page.evaluate(_CC_EXTRACTION_SCRIPT)
+   │    └─ GETS: The raw JSON dictionary containing the title, time limits, and tests
+   │
+   └─ [ END ] Returns the perfectly formatted CFProblem data to you!
+"""

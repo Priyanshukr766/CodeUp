@@ -89,11 +89,12 @@ Render statement
 Monaco editor
 Language selection
 Boilerplate templates
-Judge0 integration
+OnlineCompiler api integration
 Run against all sample tests
 Add custom testcases
 Detailed verdict UI
 Save code locally
+
 Not MVP
 Login
 Direct CF submission
@@ -105,7 +106,6 @@ Progress tracking
 Future Roadmap (Based on Your Answers)
 
 Phase 2:
-
 User accounts
 Code sync
 Problem history
