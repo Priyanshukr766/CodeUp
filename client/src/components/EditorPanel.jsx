@@ -38,6 +38,10 @@ export default function EditorPanel({
   onRun,
   running,
   results,
+  // Contest-mode hydration — set when switching tabs
+  initialCode,
+  initialLang,
+  onStateChange,
 }) {
   const [langId,  setLangId]  = useState('cpp');
   const [code,    setCode]    = useState(() => BOILERPLATES['cpp']);
@@ -45,6 +49,23 @@ export default function EditorPanel({
   const [customTests, setCustomTests] = useState([]);
   const [nextId, setNextId]  = useState(1);
   const editorRef = useRef(null);
+
+  // ── Hydrate from contest cache when tab switches ─────────────────────
+  // initialCode / initialLang change whenever the parent switches the active tab.
+  useEffect(() => {
+    if (initialCode !== undefined) setCode(initialCode || BOILERPLATES[langId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
+
+  useEffect(() => {
+    if (initialLang !== undefined) setLangId(initialLang || 'cpp');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLang]);
+
+  // ── Report editor state upward whenever it changes ──────────────────────
+  useEffect(() => {
+    if (onStateChange) onStateChange({ code, language: langId });
+  }, [code, langId, onStateChange]);
 
   // ── localStorage auto-save / restore ──────────────────────────────────
   const storageKey = problemUrl ? `codeup:${problemUrl}:${langId}` : null;

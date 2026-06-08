@@ -11,3 +11,8 @@ export async function runCode({ code, language, tests }) {
   const res = await api.post('/run', { code, language, tests });
   return res.data;
 }
+
+export async function fetchContest(contestId) {
+  const res = await api.get(`/contest/${contestId}`);
+  return res.data;
+}

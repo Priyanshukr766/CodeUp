@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import problemRouter from './routes/problem.js';
 import runRouter from './routes/run.js';
+import contestRouter from './routes/contest.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '2mb' }));
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/problem', problemRouter);
 app.use('/api/run', runRouter);
+app.use('/api/contest', contestRouter);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

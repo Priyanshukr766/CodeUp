@@ -3,18 +3,23 @@ import Split from 'react-split';
 import SearchBar from './components/SearchBar';
 import ProblemStatement from './components/ProblemStatement';
 import EditorPanel from './components/EditorPanel';
-import { fetchProblem, runCode } from './utils/api';
+import ContestTabs from './components/ContestTabs';
+import ContestTimer from './components/ContestTimer';
+import { fetchProblem, runCode, fetchContest } from './utils/api';
 
-// ── Toast helper ──────────────────────────────────────────────────────────────
-function Toast({ message, type, onDone }) {
-  return (
-    <div className={`toast ${type}`} onAnimationEnd={onDone}>
-      {message}
-    </div>
-  );
+// ── Toast notification ────────────────────────────────────────────────────────
+function Toast({ message, type }) {
+  return <div className={`toast ${type}`}>{message}</div>;
 }
 
+// ── Regex helpers for input classification ────────────────────────────────────
+// Matches pure contest URLs:  .../contest/1984  (no /problem/ suffix)
+const CONTEST_URL_RE = /codeforces\.com\/contest\/(\d+)\/?$/i;
+// Matches a bare number like "1984" (only digits, no letters)
+const BARE_ID_RE     = /^\d+$/;
+
 export default function App() {
+  // ── Single-problem state ────────────────────────────────────────────────
   const [problem,    setProblem]    = useState(null);
   const [fetching,   setFetching]   = useState(false);
   const [fetchError, setFetchError] = useState(null);
@@ -23,18 +28,36 @@ export default function App() {
   const [toast,      setToast]      = useState(null);
   const toastTimer = useRef(null);
 
+  // ── Contest state ───────────────────────────────────────────────────────
+  // contestMode: null  |  { id, name, phase, startTimeSeconds, durationSeconds, problems }
+  const [contestMode,        setContestMode]        = useState(null);
+  const [activeProblemIndex, setActiveProblemIndex] = useState(null);
+  // problemCache[index] = { details: {...}, code: "...", language: "cpp", results: [...] }
+  const [problemCache,       setProblemCache]       = useState({});
+
+  // ── Ref to read current editor state before saving (see handleTabSwitch) ─
+  // EditorPanel exposes its current code/language via an imperative handle.
+  // Instead of a ref we keep a lightweight shadow in the cache and update it
+  // through the onStateChange callback passed down to EditorPanel.
+  const editorStateRef = useRef({ code: '', language: 'cpp' });
+
   const showToast = useCallback((message, type = 'success') => {
     clearTimeout(toastTimer.current);
     setToast({ message, type });
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // ── Fetch problem ───────────────────────────────────────────────────────────
-  const handleFetch = useCallback(async (token) => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Single-problem fetch (existing flow)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleProblemFetch = useCallback(async (token) => {
     setFetching(true);
     setFetchError(null);
     setProblem(null);
     setResults(null);
+    setContestMode(null);       // leave contest mode
+    setActiveProblemIndex(null);
+    setProblemCache({});
 
     try {
       const data = await fetchProblem(token);
@@ -49,9 +72,131 @@ export default function App() {
     }
   }, [showToast]);
 
-  // ── Run code ────────────────────────────────────────────────────────────────
-  const handleRun = useCallback ( async ({ code, language, tests }) => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Contest fetch + first-problem auto-load
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleContestFetch = useCallback(async (contestId) => {
+    setFetching(true);
+    setFetchError(null);
+    setProblem(null);
+    setResults(null);
+    setContestMode(null);
+    setActiveProblemIndex(null);
+    setProblemCache({});
 
+    try {
+      const contestData = await fetchContest(contestId);
+      setContestMode(contestData);
+      showToast(`✓ Contest: ${contestData.name}`, 'success');
+
+      // Auto-load first problem (Problem A)
+      if (contestData.problems.length > 0) {
+        const firstIndex = contestData.problems[0].index;
+        // Load its details directly (no existing cache yet)
+        await _loadProblemIntoCache(contestId, firstIndex, {});
+        setActiveProblemIndex(firstIndex);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to load contest';
+      setFetchError(msg);
+      showToast(`✗ ${msg}`, 'error');
+    } finally {
+      setFetching(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showToast]);
+
+  // ── Internal: fetch a single problem and store it in the cache ────────────
+  // Returns the updated cache object.
+  async function _loadProblemIntoCache(contestId, index, currentCache) {
+    const token = `${contestId}${index}`;
+    const details = await fetchProblem(token);
+    const updated = {
+      ...currentCache,
+      [index]: {
+        details,
+        code:     currentCache[index]?.code     ?? '',
+        language: currentCache[index]?.language ?? 'cpp',
+        results:  currentCache[index]?.results  ?? null,
+      },
+    };
+    setProblemCache(updated);
+    return updated;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Tab switching with save → load → hydrate
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleTabSwitch = useCallback(async (newIndex) => {
+    if (!contestMode || newIndex === activeProblemIndex) return;
+
+    // 1. Save current editor state into the cache for the problem we're leaving
+    setProblemCache(prev => {
+      if (!activeProblemIndex) return prev;
+      return {
+        ...prev,
+        [activeProblemIndex]: {
+          ...prev[activeProblemIndex],
+          code:     editorStateRef.current.code,
+          language: editorStateRef.current.language,
+          results:  results,
+        },
+      };
+    });
+
+    // 2. Switch the active tab immediately so the UI responds
+    setActiveProblemIndex(newIndex);
+    setResults(null);
+
+    // 3. Load problem details if not already cached
+    setProblemCache(prev => {
+      if (prev[newIndex]?.details) return prev; // already loaded, no-op
+      // Kick off async load — we return prev unchanged here and update
+      // via the async path below
+      return prev;
+    });
+
+    // Check if we need to fetch
+    setProblemCache(prev => {
+      if (!prev[newIndex]?.details) {
+        // Async load
+        setFetching(true);
+        _loadProblemIntoCache(contestMode.id, newIndex, prev)
+          .catch(err => {
+            showToast(`✗ Failed to load problem ${newIndex}: ${err.message}`, 'error');
+          })
+          .finally(() => setFetching(false));
+      }
+      return prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contestMode, activeProblemIndex, results, showToast]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SearchBar dispatcher — classify input as contest or problem
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleFetch = useCallback((token) => {
+    const trimmed = token.trim();
+
+    // Pure contest URL: https://codeforces.com/contest/1984
+    const urlMatch = trimmed.match(CONTEST_URL_RE);
+    if (urlMatch) {
+      return handleContestFetch(urlMatch[1]);
+    }
+
+    // Bare number: "1984" (no letter suffix → treat as contest)
+    if (BARE_ID_RE.test(trimmed)) {
+      return handleContestFetch(trimmed);
+    }
+
+    // Everything else → individual problem
+    return handleProblemFetch(trimmed);
+  }, [handleContestFetch, handleProblemFetch]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Run code
+  // ═══════════════════════════════════════════════════════════════════════════
+  const handleRun = useCallback(async ({ code, language, tests }) => {
     if (!tests.length) return;
     setRunning(true);
     setResults(null);
@@ -74,9 +219,24 @@ export default function App() {
     }
   }, [showToast]);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Derive active problem for rendering
+  // ═══════════════════════════════════════════════════════════════════════════
+  // In contest mode the active problem comes from the cache; otherwise use state.
+  const activeCached  = contestMode && activeProblemIndex
+    ? problemCache[activeProblemIndex]
+    : null;
+  const displayProblem = contestMode ? (activeCached?.details ?? null) : problem;
+
+  // Callback so EditorPanel can report its current code/language to us
+  const handleEditorStateChange = useCallback(({ code, language }) => {
+    editorStateRef.current = { code, language };
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="app">
-      {/* ── Top Bar ───────────────────────────────────────────────────────── */}
+      {/* ── Top Bar ────────────────────────────────────────────────────── */}
       <header className="topbar">
         <a className="topbar-logo" href="/" aria-label="CodeUp Home">
           <img src="/image.png" alt="CodeUp Logo" className="topbar-logo-icon"/>
@@ -87,7 +247,17 @@ export default function App() {
 
         <SearchBar onFetch={handleFetch} loading={fetching} />
 
-        {problem && (
+        {/* Contest timer — only visible in contest mode */}
+        {contestMode && (
+          <ContestTimer
+            startTimeSeconds={contestMode.startTimeSeconds}
+            durationSeconds={contestMode.durationSeconds}
+            phase={contestMode.phase}
+          />
+        )}
+
+        {/* CF link for single-problem mode */}
+        {!contestMode && problem && (
           <a
             href={problem.url}
             target="_blank"
@@ -105,7 +275,16 @@ export default function App() {
         )}
       </header>
 
-      {/* ── Split Workspace ───────────────────────────────────────────────── */}
+      {/* ── Contest Tab Bar — shown below topbar when in contest mode ─── */}
+      {contestMode && (
+        <ContestTabs
+          problems={contestMode.problems}
+          activeIndex={activeProblemIndex}
+          onSelectProblem={handleTabSwitch}
+        />
+      )}
+
+      {/* ── Split Workspace ─────────────────────────────────────────────── */}
       <Split
         className="split-container"
         sizes={[45, 55]}
@@ -115,21 +294,23 @@ export default function App() {
         direction="horizontal"
         style={{ display: 'flex', flex: 1, overflow: 'hidden' }}
       >
-        {/* ── LEFT: Problem Statement ──────────────────────────────────── */}
+        {/* LEFT: Problem Statement */}
         <div className="panel problem-panel">
           <div className="panel-header">
             <span className="panel-header-title">
-              {problem ? problem.group : 'Problem'}
+              {contestMode
+                ? (contestMode.name)
+                : (displayProblem ? displayProblem.group : 'Problem')}
             </span>
-            {problem?.url && (
+            {!contestMode && displayProblem?.url && (
               <span className="text-muted">
-                {new URL(problem.url).pathname.split('/').filter(Boolean).slice(-2).join('/')}
+                {new URL(displayProblem.url).pathname.split('/').filter(Boolean).slice(-2).join('/')}
               </span>
             )}
           </div>
           <div className="problem-scroll">
             <ProblemStatement
-              problem={problem}
+              problem={displayProblem}
               loading={fetching}
               error={fetchError}
               onExampleClick={handleFetch}
@@ -137,24 +318,22 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── RIGHT: Editor ────────────────────────────────────────────── */}
+        {/* RIGHT: Editor */}
         <EditorPanel
-          problemUrl={problem?.url}
-          sampleTests={problem?.tests}
+          problemUrl={displayProblem?.url}
+          sampleTests={displayProblem?.tests}
           onRun={handleRun}
           running={running}
           results={results}
+          // Contest-mode hydration props
+          initialCode={activeCached?.code     ?? undefined}
+          initialLang={activeCached?.language ?? undefined}
+          onStateChange={handleEditorStateChange}
         />
       </Split>
 
-      {/* ── Toast ─────────────────────────────────────────────────────────── */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onDone={() => {}}
-        />
-      )}
+      {/* ── Toast ──────────────────────────────────────────────────────── */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }
