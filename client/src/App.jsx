@@ -5,6 +5,9 @@ import ProblemStatement from './components/ProblemStatement';
 import EditorPanel from './components/EditorPanel';
 import ContestTabs from './components/ContestTabs';
 import ContestTimer from './components/ContestTimer';
+import Login from './components/Login';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import { useAuth } from './contexts/AuthContext';
 import { fetchProblem, runCode, fetchContest } from './utils/api';
 
 // ── Toast notification ────────────────────────────────────────────────────────
@@ -27,6 +30,8 @@ export default function App() {
   const [results,    setResults]    = useState(null);
   const [toast,      setToast]      = useState(null);
   const toastTimer = useRef(null);
+  const [viewMode,   setViewMode]   = useState('practice'); // 'practice' | 'analytics'
+  const { user, dbUser, loading: authLoading, logout } = useAuth();
 
   // ── Contest state ───────────────────────────────────────────────────────
   // contestMode: null  |  { id, name, phase, startTimeSeconds, durationSeconds, problems }
@@ -234,6 +239,23 @@ export default function App() {
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
+
+  // Show login/onboarding if not fully authenticated and synced
+  if (authLoading) {
+    return (
+      <div className="welcome-state">
+        <div className="loader-wrap">
+          <div className="skeleton title"></div>
+          <div className="skeleton line"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !dbUser?.cf_handle) {
+    return <Login />;
+  }
+
   return (
     <div className="app">
       {/* ── Top Bar ────────────────────────────────────────────────────── */}
@@ -273,27 +295,57 @@ export default function App() {
             Codeforces
           </a>
         )}
+
+        {/* View Toggle & Logout */}
+        <div style={{ display: 'flex', gap: 12, marginLeft: !contestMode && problem ? '16px' : 'auto' }}>
+          <button 
+            className={`icon-btn ${viewMode === 'practice' ? 'active' : ''}`}
+            onClick={() => setViewMode('practice')}
+            style={viewMode === 'practice' ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+          >
+            Practice
+          </button>
+          <button 
+            className={`icon-btn ${viewMode === 'analytics' ? 'active' : ''}`}
+            onClick={() => setViewMode('analytics')}
+            style={viewMode === 'analytics' ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
+          >
+            AI Coach
+          </button>
+          <button className="icon-btn" onClick={logout} title="Sign Out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </header>
 
-      {/* ── Contest Tab Bar — shown below topbar when in contest mode ─── */}
-      {contestMode && (
-        <ContestTabs
-          problems={contestMode.problems}
-          activeIndex={activeProblemIndex}
-          onSelectProblem={handleTabSwitch}
-        />
-      )}
+      {/* ── Main Content Area ─────────────────────────────────────────── */}
+      {viewMode === 'analytics' ? (
+        <AnalyticsDashboard />
+      ) : (
+        <>
+          {/* ── Contest Tab Bar — shown below topbar when in contest mode ─── */}
+          {contestMode && (
+            <ContestTabs
+              problems={contestMode.problems}
+              activeIndex={activeProblemIndex}
+              onSelectProblem={handleTabSwitch}
+            />
+          )}
 
-      {/* ── Split Workspace ─────────────────────────────────────────────── */}
-      <Split
-        className="split-container"
-        sizes={[45, 55]}
-        minSize={[280, 360]}
-        gutterSize={5}
-        snapOffset={20}
-        direction="horizontal"
-        style={{ display: 'flex', flex: 1, overflow: 'hidden' }}
-      >
+          {/* ── Split Workspace ─────────────────────────────────────────────── */}
+          <Split
+            className="split-container"
+            sizes={[45, 55]}
+            minSize={[280, 360]}
+            gutterSize={5}
+            snapOffset={20}
+            direction="horizontal"
+            style={{ display: 'flex', flex: 1, overflow: 'hidden' }}
+          >
         {/* LEFT: Problem Statement */}
         <div className="panel problem-panel">
           <div className="panel-header">
@@ -331,6 +383,8 @@ export default function App() {
           onStateChange={handleEditorStateChange}
         />
       </Split>
+        </>
+      )}
 
       {/* ── Toast ──────────────────────────────────────────────────────── */}
       {toast && <Toast message={toast.message} type={toast.type} />}

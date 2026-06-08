@@ -6,6 +6,10 @@ import { dirname, join } from 'path';
 import problemRouter from './routes/problem.js';
 import runRouter from './routes/run.js';
 import contestRouter from './routes/contest.js';
+import authRouter from './routes/auth.js';
+import syncRouter from './routes/sync.js';
+import analyticsRouter from './routes/analytics.js';
+import aiRouter from './routes/ai.js';
 
 dotenv.config();
 
@@ -22,6 +26,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api/problem', problemRouter);
 app.use('/api/run', runRouter);
 app.use('/api/contest', contestRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/sync', syncRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/ai', aiRouter);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
