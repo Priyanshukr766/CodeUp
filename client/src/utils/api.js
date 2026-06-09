@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
+const baseURL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`
+  : 'http://localhost:3001/api';
+
+const api = axios.create({ baseURL });
 
 export async function fetchProblem(token) {
   const res = await api.get(`/problem/${encodeURIComponent(token)}`);
