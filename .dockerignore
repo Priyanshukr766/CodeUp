@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+server/node_modules
+client/node_modules
+npm-debug.log
+
+# Frontend (Not needed in Backend Docker image)
+client/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+env/
+
+
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Misc
+*.md

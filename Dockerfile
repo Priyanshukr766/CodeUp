@@ -1,31 +1,40 @@
-# Use the official Playwright Python image.
-# This image contains Python 3, Chromium, and all required Linux dependencies for headless browsers.
+# 1. Base Image
+# We use the official Microsoft Playwright image based on Ubuntu Jammy (22.04).
+# This image contains Python 3.10 and all the Linux system dependencies needed 
+# to run headless Chromium without crashing.
 FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
 
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Install Node.js (v20)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# 2. Install Node.js
+# The Playwright image doesn't have Node.js by default, and our Express server needs it.
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy backend package.json and install Node dependencies
-COPY server/package*.json ./server/
-RUN cd server && npm install
-
-# Copy Python requirements and install
-COPY requirements.txt ./
+# 3. Install Python dependencies
+# Copy the requirements file and install the playwright python package
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the server code and the Python scraper script
-COPY server/ ./server/
-COPY cf_fetcher.py ./
+# 4. Install Node dependencies for the server
+# We copy only package.json first to cache the npm install step
+COPY server/package*.json ./server/
+RUN cd server && npm install --production
 
-# Expose the port the Express server runs on
+# 5. Copy the rest of the application code
+# This copies the server folder and the cf_fetcher.py script
+COPY server/ ./server/
+COPY cf_fetcher.py .
+
+# 6. Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Expose the port the app runs on
 EXPOSE 3001
 
-# Start the Express server
-WORKDIR /app/server
-CMD ["node", "index.js"]
+# Command to run our Express backend
+CMD ["node", "server/index.js"]

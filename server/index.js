@@ -21,22 +21,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ── Security Middleware ───────────────────────────────────────────────────────
-app.use(helmet()); // Sets 15+ secure HTTP headers
+// ── Security Middleware ────────────────────────────────────────────────────────
+// Helmet sets various HTTP headers for security (X-XSS-Protection, Strict-Transport-Security, etc)
+app.use(helmet());
 
-// Allow frontend connection (use .env CLIENT_URL in production, fallback to localhost)
+// Dynamic CORS: Allow localhost for dev, or the specific Vercel URL in production
 const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({ origin: allowedOrigin }));
-app.use(express.json({ limit: '2mb' }));
 
-// ── Rate Limiting ─────────────────────────────────────────────────────────────
-// Prevent DDoS and abuse of our free AI/Compiler APIs
-const globalLimiter = rateLimit({
+// Rate Limiting: Prevent DDoS and API abuse (150 requests per 15 minutes per IP)
+const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+  max: 150, 
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
 });
-app.use('/api', globalLimiter);
+app.use(limiter);
+
+app.use(express.json({ limit: '2mb' }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/problem', problemRouter);
