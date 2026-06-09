@@ -1,13 +1,34 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Terminal, Link, LogIn, ArrowRight, Loader2 } from 'lucide-react';
+import { Terminal, Link, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const { user, dbUser, loginWithGoogle, syncCodeforcesHandle, loading } = useAuth();
   const [handle, setHandle] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
+
+  const bgStyle = {
+    height: '100%', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    padding: '20px',
+    backgroundImage: 'url(/loginBg.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    position: 'relative'
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0, 0, 0, 0.4)',
+    backdropFilter: 'blur(4px)',
+    zIndex: 0
+  };
 
   if (loading) {
     return (
@@ -25,20 +46,24 @@ export default function Login() {
   // Not logged in
   if (!user) {
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '20px' }}>
+      <div style={bgStyle}>
+        <div style={overlayStyle}></div>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 24 }}
           style={{ 
-            background: 'var(--bg-surface)', 
-            padding: '40px', 
-            borderRadius: '16px', 
-            border: '1px solid var(--border)',
+            background: 'rgba(5, 5, 5, 0.7)', 
+            backdropFilter: 'blur(32px)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, black 55%, transparent 100%)',
+            maskImage: 'radial-gradient(ellipse at center, black 55%, transparent 100%)',
+            padding: '80px 40px', 
+            border: 'none',
             width: '100%',
-            maxWidth: '440px',
+            maxWidth: '520px',
             textAlign: 'center',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+            position: 'relative',
+            zIndex: 1
           }}
         >
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', marginBottom: '24px' }}>
@@ -61,7 +86,7 @@ export default function Login() {
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            <LogIn size={18} />
+            <img src="/googleIcon.png" alt="Google" style={{ width: '18px', height: '18px' }} />
             Continue with Google
           </button>
         </motion.div>
@@ -84,19 +109,23 @@ export default function Login() {
     };
 
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '20px' }}>
+      <div style={bgStyle}>
+        <div style={overlayStyle}></div>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 24 }}
           style={{ 
-            background: 'var(--bg-surface)', 
-            padding: '40px', 
-            borderRadius: '16px', 
-            border: '1px solid var(--border)',
+            background: 'rgba(5, 5, 5, 0.7)', 
+            backdropFilter: 'blur(32px)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, black 60%, transparent 100%)',
+            maskImage: 'radial-gradient(ellipse at center, black 60%, transparent 100%)',
+            padding: '80px 40px', 
+            border: 'none',
             width: '100%',
-            maxWidth: '440px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+            maxWidth: '520px',
+            position: 'relative',
+            zIndex: 1
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>

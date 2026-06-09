@@ -87,7 +87,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div style={{ padding: '32px 40px', color: 'var(--text-primary)', overflowY: 'auto', height: '100%', backgroundColor: 'var(--bg-base)' }}>
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LayoutDashboard size={28} color="var(--text-primary)" />
           <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>AI Coach Dashboard</h2>
@@ -99,10 +99,10 @@ export default function AnalyticsDashboard() {
         </div>
       </motion.div>
       
-      <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* Top Row: Consistency & Report */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
           
           <motion.div variants={itemVariants} className="custom-test" style={{ padding: '24px', borderRadius: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
@@ -160,7 +160,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Middle Row: Distributions */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
           
           <motion.div variants={itemVariants} className="custom-test" style={{ padding: '24px', borderRadius: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>

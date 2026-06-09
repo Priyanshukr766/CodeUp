@@ -9,6 +9,7 @@ import Login from './components/Login';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { fetchProblem, runCode, fetchContest } from './utils/api';
+import { Terminal } from 'lucide-react';
 
 // ── Toast notification ────────────────────────────────────────────────────────
 function Toast({ message, type }) {
@@ -261,7 +262,7 @@ export default function App() {
       {/* ── Top Bar ────────────────────────────────────────────────────── */}
       <header className="topbar">
         <a className="topbar-logo" href="/" aria-label="CodeUp Home">
-          <img src="/image.png" alt="CodeUp Logo" className="topbar-logo-icon"/>
+          <Terminal size={28} color="var(--text-primary)" />
           <span className="topbar-logo-text">CodeUp</span>
         </a>
 

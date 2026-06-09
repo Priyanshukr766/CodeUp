@@ -73,7 +73,7 @@ export default function AiRoadmap({ data }) {
           borderRadius: '12px',
           border: '1px solid var(--border)' 
         }}>
-          <div className="problem-statement-content" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+          <div className="ai-markdown">
             <ReactMarkdown>{roadmap}</ReactMarkdown>
           </div>
         </div>

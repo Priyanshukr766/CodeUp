@@ -48,9 +48,9 @@ export default function AiSkillGap({ data }) {
       ) : error ? (
         <p style={{ color: 'var(--danger)', fontSize: '13px' }}>Failed to load AI analysis: {error}</p>
       ) : (
-        <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'var(--text-secondary)' }}>
+        <div className="ai-markdown">
           {analysis.split('\n').map((paragraph, idx) => (
-            <p key={idx} style={{ marginBottom: '12px' }}>{paragraph}</p>
+            <p key={idx}>{paragraph}</p>
           ))}
         </div>
       )}

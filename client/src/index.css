@@ -516,6 +516,31 @@ body {
   margin-top: 16px;
 }
 
+/* ── AI Markdown ──────────────────────────────────────────────────────────── */
+.ai-markdown {
+  font-size: 14px;
+  line-height: 2; /* Increased for high readability */
+  color: var(--text-secondary);
+}
+.ai-markdown p {
+  margin-bottom: 16px;
+}
+.ai-markdown ul, .ai-markdown ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+.ai-markdown li {
+  margin-bottom: 8px;
+}
+.ai-markdown h1, .ai-markdown h2, .ai-markdown h3 {
+  color: var(--text-primary);
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+.ai-markdown strong {
+  color: var(--text-primary);
+}
+
 /* ── Sample Test Cases ──────────────────────────────────────────────────── */
 .samples-section {
   margin-top: 24px;
