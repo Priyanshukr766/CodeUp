@@ -2,7 +2,7 @@
 # We use the official Microsoft Playwright image based on Ubuntu Jammy (22.04).
 # This image contains Python 3.10 and all the Linux system dependencies needed 
 # to run headless Chromium without crashing.
-FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+FROM mcr.microsoft.com/playwright/python:v1.60.0-jammy
 
 # Set the working directory inside the container
 WORKDIR /app
