@@ -302,14 +302,12 @@ export default function App() {
           <button 
             className={`icon-btn ${viewMode === 'practice' ? 'active' : ''}`}
             onClick={() => setViewMode('practice')}
-            style={viewMode === 'practice' ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
           >
             Practice
           </button>
           <button 
             className={`icon-btn ${viewMode === 'analytics' ? 'active' : ''}`}
             onClick={() => setViewMode('analytics')}
-            style={viewMode === 'analytics' ? { background: 'var(--accent)', color: '#fff', border: 'none' } : {}}
           >
             AI Coach
           </button>

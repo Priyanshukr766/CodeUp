@@ -241,21 +241,24 @@ body {
 
 .search-btn {
   padding: 7px 16px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, transform 0.1s;
+  transition: all 0.15s;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.search-btn:hover { background: var(--accent-hover); }
+.search-btn:hover:not(:disabled) { 
+  border-color: var(--text-secondary); 
+  color: var(--text-primary); 
+}
 .search-btn:active { transform: scale(0.97); }
 .search-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -692,6 +695,11 @@ body {
   white-space: nowrap;
 }
 .icon-btn:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.icon-btn.active {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: transparent;
+}
 
 /* ── Monaco Wrapper ─────────────────────────────────────────────────────── */
 .monaco-wrap {
