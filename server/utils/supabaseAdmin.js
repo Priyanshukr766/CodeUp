@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -17,5 +18,8 @@ export const supabaseAdmin = createClient(supabaseUrl || 'https://placeholder.su
   auth: {
     autoRefreshToken: false,
     persistSession: false
+  },
+  global: {
+    WebSocket
   }
 });
