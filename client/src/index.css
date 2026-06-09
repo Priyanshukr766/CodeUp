@@ -42,8 +42,8 @@ html, body, #root { height: 100%; overflow: hidden; }
   --text-link:     #e0e0e0;
 
   /* Typography */
-  --font-sans:     'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans:     'Cormorant Garamond', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:     'Cormorant Garamond', 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Sizing */
   --radius-sm:    4px;

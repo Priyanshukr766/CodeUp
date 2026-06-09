@@ -33,7 +33,7 @@ Usage (CLI):
 """
 
 from __future__ import annotations
-
+import time
 import asyncio
 import io
 import json
@@ -491,6 +491,7 @@ async def fetch_problem(
     token_or_url: str,
     index: Optional[str] = None,
 ) -> CFProblem:
+    start_time = time.perf_counter()
     """
     Fetch and parse a Codeforces problem.
 
@@ -572,6 +573,13 @@ async def fetch_problem(
             note            = raw.get("note", ""),
         )
 
+        total_time = time.perf_counter() - start_time
+
+        print(
+            f"[LATENCY] fetch_problem({contest_id}{problem_index}) "
+            f"completed in {total_time:.2f}s"
+        )   
+        print("\n\n\n") 
         return problem
 
     finally:
