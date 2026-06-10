@@ -8,30 +8,43 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
   AreaChart, Area, CartesianGrid
 } from 'recharts';
-import { LayoutDashboard, Calendar, Activity, BarChart2, TrendingUp, Target } from 'lucide-react';
+import { LayoutDashboard, Calendar, Activity, BarChart2, TrendingUp, Target, RefreshCw } from 'lucide-react';
 
 export default function AnalyticsDashboard() {
-  const { dbUser } = useAuth();
+  const { dbUser, syncCodeforcesHandle } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await axios.get(`/api/analytics/${dbUser.cf_handle}`);
+      setData(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!dbUser || !dbUser.cf_handle) return;
-
-    const fetchAnalytics = async () => {
-      try {
-        const res = await axios.get(`/api/analytics/${dbUser.cf_handle}`);
-        setData(res.data);
-      } catch (err) {
-        setError(err.response?.data?.error || err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnalytics();
   }, [dbUser]);
+
+  const handleRefresh = async () => {
+    if (!dbUser || !dbUser.cf_handle) return;
+    setIsRefreshing(true);
+    try {
+      await syncCodeforcesHandle(dbUser.cf_handle);
+      await fetchAnalytics();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -92,10 +105,31 @@ export default function AnalyticsDashboard() {
           <LayoutDashboard size={28} color="var(--text-primary)" />
           <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>AI Coach Dashboard</h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{data.handle}</span>
-          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)' }}></span>
-          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Rating: {data.currentRating}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{data.handle}</span>
+            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)' }}></span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Rating: {data.currentRating}</span>
+          </div>
+          <button 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '6px', 
+              background: 'var(--bg-elevated)', color: 'var(--text-primary)', 
+              border: '1px solid var(--border)', padding: '6px 12px', 
+              borderRadius: '8px', cursor: isRefreshing ? 'not-allowed' : 'pointer',
+              opacity: isRefreshing ? 0.7 : 1, fontSize: '13px', fontWeight: '600',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => { if (!isRefreshing) e.currentTarget.style.background = 'var(--border)' }}
+            onMouseLeave={(e) => { if (!isRefreshing) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          >
+            <motion.div animate={{ rotate: isRefreshing ? 360 : 0 }} transition={{ repeat: isRefreshing ? Infinity : 0, duration: 1, ease: "linear" }}>
+              <RefreshCw size={14} />
+            </motion.div>
+            {isRefreshing ? 'Syncing...' : 'Refresh'}
+          </button>
         </div>
       </motion.div>
       

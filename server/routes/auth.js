@@ -84,8 +84,9 @@ router.post('/sync', async (req, res) => {
 
     res.json({ success: true, count: rowsToInsert.length });
   } catch (err) {
-    console.error('[auth/sync]', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[auth/sync]', err.response?.data || err.message);
+    const cfError = err.response?.data?.comment || err.message;
+    res.status(500).json({ error: `Sync failed: ${cfError}` });
   }
 });
 
