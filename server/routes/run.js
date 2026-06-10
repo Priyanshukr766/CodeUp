@@ -49,6 +49,12 @@ function resolveStatus(apiResp) {
   if (exit_code === 137 || signal === 9)  return 'Memory / Time Limit Exceeded';
   if (exit_code === 139 || signal === 11) return 'Runtime Error (SIGSEGV)';
 
+  // ── Catch the onlinecompiler.io sandbox crash before heuristics ──
+  // The API returns this for MLE, Division by Zero, and Infinite Loops.
+  if (error && error.includes('Internal error: code execution failed')) {
+    return 'Runtime Error / Limit Exceeded';
+  }
+
   // Non-zero exit without a signal usually means a runtime or compile error
   if (error && error.trim().length > 0) {
     // Heuristic: compile errors typically appear before any output
@@ -144,8 +150,12 @@ router.post('/', async (req, res) => {
 
           const apiResp = await runOnTestCase(code, compiler, tc.input);
           const stdout   = apiResp.output ?? '';
-          const stderr   = apiResp.error  ?? '';
+          let stderr     = apiResp.error  ?? '';
           const expected = tc.expectedOutput ?? '';
+
+          if (stderr.includes('Internal error: code execution failed')) {
+            stderr += '\n\nThe execution sandbox crashed. This is often caused by Memory Limit Exceeded, Division by Zero, or an Infinite Loop.';
+          }
 
           /*
             "Accepted" means:

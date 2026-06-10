@@ -828,20 +828,25 @@ body {
 
 .verdict-scroll {
   flex: 1;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 10px 12px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 12px;
 }
 
 /* ── Verdict Card ───────────────────────────────────────────────────────── */
 .verdict-card {
+  flex: 0 0 320px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
   animation: slide-in 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 }
 
 @keyframes slide-in {
@@ -890,15 +895,17 @@ body {
 
 .verdict-body {
   border-top: 1px solid var(--border);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .verdict-pane {
   padding: 10px 12px;
   font-size: 12px;
+  flex: 1;
 }
-.verdict-pane:first-child { border-right: 1px solid var(--border); }
+.verdict-pane:first-child { border-bottom: 1px solid var(--border); }
 .verdict-pane-label {
   font-size: 10px;
   font-weight: 700;
@@ -926,6 +933,9 @@ body {
   white-space: pre-wrap;
   word-break: break-all;
   background: rgba(210,153,34,0.05);
+  overflow-y: auto;
+  flex-shrink: 0;
+  max-height: 150px;
 }
 
 /* ── Custom Test Case ───────────────────────────────────────────────────── */
