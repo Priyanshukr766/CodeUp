@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { GoogleGenAI } from '@google/genai';
+import crypto from 'crypto';
+import { supabaseAdmin } from '../utils/supabaseAdmin.js';
 
 const router = Router();
 
@@ -11,13 +13,34 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // ── POST /api/ai/skill-gap ────────────────────────────────────────────────────
 // Accepts processed metrics and returns a human-readable skill gap analysis.
 router.post('/skill-gap', async (req, res) => {
-  const { metrics } = req.body;
+  const { userId, metrics } = req.body;
 
-  if (!metrics) {
-    return res.status(400).json({ error: 'Processed metrics are required.' });
+  if (!userId || !metrics) {
+    return res.status(400).json({ error: 'userId and metrics are required.' });
   }
 
-  const prompt = `
+  // Generate a hash of the incoming metrics to detect changes
+  const hash = crypto.createHash('sha256').update(JSON.stringify(metrics)).digest('hex');
+
+  try {
+    // 1. Check Cache
+    const { data: existingRow } = await supabaseAdmin
+      .from('recommendation_cache')
+      .select('recommendations')
+      .eq('user_id', userId)
+      .single();
+
+    const cacheData = existingRow?.recommendations || {};
+
+    // If the hash matches and we already generated an analysis, return it instantly!
+    if (cacheData.skill_gap_hash === hash && cacheData.skill_gap_analysis) {
+      console.log('[ai/skill-gap] Serving from cache');
+      return res.json({ analysis: cacheData.skill_gap_analysis });
+    }
+
+    console.log('[ai/skill-gap] Metrics changed or no cache. Calling Gemini...');
+
+    const prompt = `
 You are an expert competitive programming AI Coach.
 Analyze the following user performance metrics and provide a brief, actionable skill gap explanation.
 Do not use charts or complex formatting. Output clear, concise paragraphs.
@@ -36,14 +59,23 @@ User Metrics:
 
 Keep your response under 150 words and be highly encouraging but precise.
 `;
-
-  try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
     
-    res.json({ analysis: response.text });
+    const analysis = response.text;
+
+    // 3. Update Cache
+    const newCacheData = { ...cacheData, skill_gap_hash: hash, skill_gap_analysis: analysis };
+    
+    await supabaseAdmin.from('recommendation_cache').upsert({
+      user_id: userId,
+      recommendations: newCacheData,
+      generated_at: new Date().toISOString()
+    });
+
+    res.json({ analysis });
   } catch (err) {
     console.error('[ai/skill-gap] Error:', err.message);
     res.status(500).json({ error: 'Failed to generate skill gap analysis.' });
@@ -53,13 +85,34 @@ Keep your response under 150 words and be highly encouraging but precise.
 // ── POST /api/ai/roadmap ──────────────────────────────────────────────────────
 // Accepts processed metrics + targetRating and returns a roadmap.
 router.post('/roadmap', async (req, res) => {
-  const { metrics, targetRating } = req.body;
+  const { userId, metrics, targetRating } = req.body;
 
-  if (!metrics || !targetRating) {
-    return res.status(400).json({ error: 'Metrics and targetRating are required.' });
+  if (!userId || !metrics || !targetRating) {
+    return res.status(400).json({ error: 'userId, metrics, and targetRating are required.' });
   }
 
-  const prompt = `
+  // Include targetRating in the hash because changing the target should generate a new roadmap
+  const hashObj = { ...metrics, targetRating };
+  const hash = crypto.createHash('sha256').update(JSON.stringify(hashObj)).digest('hex');
+
+  try {
+    // 1. Check Cache
+    const { data: existingRow } = await supabaseAdmin
+      .from('recommendation_cache')
+      .select('recommendations')
+      .eq('user_id', userId)
+      .single();
+
+    const cacheData = existingRow?.recommendations || {};
+
+    if (cacheData.roadmap_hash === hash && cacheData.roadmap_analysis) {
+      console.log('[ai/roadmap] Serving from cache');
+      return res.json({ roadmap: cacheData.roadmap_analysis });
+    }
+
+    console.log('[ai/roadmap] Metrics or target changed. Calling Gemini...');
+
+    const prompt = `
 You are an expert competitive programming AI Coach.
 Generate a personalized, week-by-week study roadmap for a user trying to reach a Codeforces rating of ${targetRating}.
 The user is currently comfortable solving problems around the ${metrics.most_solved_rating} rating level.
@@ -76,14 +129,23 @@ Structure the response as follows:
 
 Do not use charts. Use clean Markdown headers and bullet points.
 `;
-
-  try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
     
-    res.json({ roadmap: response.text });
+    const roadmapAnalysis = response.text;
+
+    // 3. Update Cache
+    const newCacheData = { ...cacheData, roadmap_hash: hash, roadmap_analysis: roadmapAnalysis };
+    
+    await supabaseAdmin.from('recommendation_cache').upsert({
+      user_id: userId,
+      recommendations: newCacheData,
+      generated_at: new Date().toISOString()
+    });
+
+    res.json({ roadmap: roadmapAnalysis });
   } catch (err) {
     console.error('[ai/roadmap] Error:', err.message);
     res.status(500).json({ error: 'Failed to generate roadmap.' });

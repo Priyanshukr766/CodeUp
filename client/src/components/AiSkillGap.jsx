@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AiSkillGap({ data }) {
+  const { dbUser } = useAuth();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,7 +22,10 @@ export default function AiSkillGap({ data }) {
           weekly_solves: data.practiceConsistency.weeklySolves
         };
 
-        const res = await axios.post('/api/ai/skill-gap', { metrics });
+        const res = await axios.post('/api/ai/skill-gap', { 
+          userId: dbUser.id,
+          metrics 
+        });
         setAnalysis(res.data.analysis);
       } catch (err) {
         setError(err.response?.data?.error || err.message);

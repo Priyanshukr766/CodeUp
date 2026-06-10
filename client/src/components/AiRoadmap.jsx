@@ -2,8 +2,10 @@ import { useState } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import { Target, ArrowRight } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AiRoadmap({ data }) {
+  const { dbUser } = useAuth();
   const [targetRating, setTargetRating] = useState('');
   const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +25,7 @@ export default function AiRoadmap({ data }) {
       };
 
       const res = await axios.post('/api/ai/roadmap', {
+        userId: dbUser.id,
         metrics,
         targetRating: parseInt(targetRating, 10)
       });
