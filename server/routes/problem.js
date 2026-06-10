@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import axios from 'axios';
+import redisClient from '../utils/redisAdmin.js';
 
 const router = Router();
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -126,17 +127,32 @@ Example:
 "   1984 A   "  →  "1984 A"
 This ensures that `raw` contains a clean, usable input for further processing.
 */
-
   if (!raw) {
     return res.status(400).json({ error: 'Problem token is required' });
   }
 
   try {
-    // Run Python scraper
+    const parsed = parseToken(raw);
+    let cacheKey = `cf_problem:${raw}`;
+    if (parsed) {
+      cacheKey = `cf_problem:${parsed[0]}:${parsed[1]}`;
+    }
+
+    // 1. Check Redis Cache
+    if (redisClient) {
+      const cached = await redisClient.get(cacheKey);
+      if (cached) {
+        console.log(`[problem route] Serving ${cacheKey} from Redis cache`);
+        return res.json(JSON.parse(cached));
+      }
+    }
+
+    console.log(`[problem route] Cache miss for ${cacheKey}. Running scraper...`);
+
+    // 2. Run Python scraper
     const problem = await runScraper(raw);
 
-    // Attempt to enrich with CF API metadata
-    const parsed = parseToken(raw);
+    // 3. Attempt to enrich with CF API metadata
     if (parsed) {
       const [contestId, problemIndex] = parsed;
       const meta = await fetchCFMeta(contestId, problemIndex);
@@ -144,6 +160,11 @@ This ensures that `raw` contains a clean, usable input for further processing.
         problem.rating = meta.rating;
         problem.tags   = meta.tags;
       }
+    }
+
+    // 4. Store in Redis with 48 hr TTL (172,800 seconds)
+    if (redisClient) {
+      await redisClient.setEx(cacheKey, 172800, JSON.stringify(problem));
     }
 
     res.json(problem);

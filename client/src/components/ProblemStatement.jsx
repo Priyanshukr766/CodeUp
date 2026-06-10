@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import DOMPurify from 'dompurify';
 import SampleTestCases from './SampleTestCases';
 
@@ -26,7 +26,15 @@ async function typesetMath(node) {
 
 // ── Sanitise HTML from the scraper ───────────────────────────────────────────
 function sanitize(html) {
-  return DOMPurify.sanitize(html ?? '', {
+  let mathToggle = false;
+  // Codeforces uses $$$ for math, which confuses standard MathJax configs.
+  // We safely replace $$$ pairs with standard LaTeX \\( and \\)
+  const processedHtml = (html ?? '').replace(/\$\$\$/g, () => {
+    mathToggle = !mathToggle;
+    return mathToggle ? '\\(' : '\\)';
+  });
+
+  return DOMPurify.sanitize(processedHtml, {
     ALLOWED_TAGS: [
       'p','br','b','strong','i','em','u','s','ul','ol','li',
       'table','thead','tbody','tr','th','td','pre','code','span','div',
@@ -37,13 +45,20 @@ function sanitize(html) {
   });
 }
 
-export default function ProblemStatement({ problem, loading, error, onExampleClick }) {
-  const bodyRef = useRef(null);
-  const [showTags, setShowTags] = useState(false);
+// ── Memoized component to safely wrap MathJax rendering ──────────────────────
+// This prevents React from overwriting MathJax DOM mutations during re-renders
+const MathJaxContent = memo(({ html, className }) => {
+  const ref = useRef(null);
 
   useEffect(() => {
-    if (bodyRef.current) typesetMath(bodyRef.current);
-  }, [problem]);
+    if (ref.current) typesetMath(ref.current);
+  }, [html]);
+
+  return <div className={className} ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
+});
+
+export default function ProblemStatement({ problem, loading, error, onExampleClick }) {
+  const [showTags, setShowTags] = useState(false);
 
   /* ── Loading skeleton ─────────────────────────────────────────────────── */
   if (loading) {
@@ -94,7 +109,7 @@ export default function ProblemStatement({ problem, loading, error, onExampleCli
   const ratingClass = getRatingClass(problem.rating);
 
   return (
-    <div ref={bodyRef}>
+    <div>
       {/* ── Title ─────────────────────────────────────────────────────── */}
       <h1 className="problem-title">{problem.name}</h1>
 
@@ -140,29 +155,20 @@ export default function ProblemStatement({ problem, loading, error, onExampleCli
 
       {/* ── Statement body ────────────────────────────────────────────── */}
       {problem.statement && (
-        <div
-          className="cf-statement"
-          dangerouslySetInnerHTML={{ __html: sanitize(problem.statement) }}
-        />
+        <MathJaxContent className="cf-statement" html={sanitize(problem.statement)} />
       )}
 
       {/* ── Input specification ───────────────────────────────────────── */}
       {problem.inputSpec && (
         <>
           <div className="problem-divider" />
-          <div
-            className="cf-statement"
-            dangerouslySetInnerHTML={{ __html: sanitize(problem.inputSpec) }}
-          />
+          <MathJaxContent className="cf-statement" html={sanitize(problem.inputSpec)} />
         </>
       )}
 
       {/* ── Output specification ──────────────────────────────────────── */}
       {problem.outputSpec && (
-        <div
-          className="cf-statement"
-          dangerouslySetInnerHTML={{ __html: sanitize(problem.outputSpec) }}
-        />
+        <MathJaxContent className="cf-statement" html={sanitize(problem.outputSpec)} />
       )}
 
       {/* ── Sample test cases ─────────────────────────────────────────── */}
@@ -174,10 +180,7 @@ export default function ProblemStatement({ problem, loading, error, onExampleCli
       {problem.note && (
         <>
           <div className="problem-divider" />
-          <div
-            className="cf-statement"
-            dangerouslySetInnerHTML={{ __html: sanitize(problem.note) }}
-          />
+          <MathJaxContent className="cf-statement" html={sanitize(problem.note)} />
         </>
       )}
     </div>
