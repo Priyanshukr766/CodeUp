@@ -96,7 +96,6 @@ Visit `http://localhost:5173` to start solving!
 
 ## 🏗️ Architecture Highlights
 
-- **Anti-Bot Scraping:** Instead of relying on the flaky Codeforces API, CodeUp spins up a persistent, heavily-disguised headless Chromium instance to navigate through Cloudflare challenges and extract the raw DOM.
 - **Smart Caching Layer:** SHA-256 hashes are used to detect when a user's Codeforces stats have changed. The AI Coach only triggers an expensive Gemini API call when a state change is detected, otherwise serving instantly from Supabase.
 - **Unified Verdict Cards:** Test cases are evaluated concurrently and displayed in sleek, horizontal columns with raw GCC output preservation.
 
