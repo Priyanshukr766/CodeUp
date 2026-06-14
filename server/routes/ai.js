@@ -13,10 +13,11 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // ── POST /api/ai/skill-gap ────────────────────────────────────────────────────
 // Accepts processed metrics and returns a human-readable skill gap analysis.
 router.post('/skill-gap', async (req, res) => {
-  const { userId, metrics } = req.body;
+  const userId = req.user.id;
+  const { metrics } = req.body;
 
-  if (!userId || !metrics) {
-    return res.status(400).json({ error: 'userId and metrics are required.' });
+  if (!metrics) {
+    return res.status(400).json({ error: 'metrics are required.' });
   }
 
   // Generate a hash of the incoming metrics to detect changes
@@ -85,10 +86,11 @@ Keep your response under 150 words and be highly encouraging but precise.
 // ── POST /api/ai/roadmap ──────────────────────────────────────────────────────
 // Accepts processed metrics + targetRating and returns a roadmap.
 router.post('/roadmap', async (req, res) => {
-  const { userId, metrics, targetRating } = req.body;
+  const userId = req.user.id;
+  const { metrics, targetRating } = req.body;
 
-  if (!userId || !metrics || !targetRating) {
-    return res.status(400).json({ error: 'userId, metrics, and targetRating are required.' });
+  if (!metrics || !targetRating) {
+    return res.status(400).json({ error: 'metrics, and targetRating are required.' });
   }
 
   // Include targetRating in the hash because changing the target should generate a new roadmap

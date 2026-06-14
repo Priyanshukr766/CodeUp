@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../utils/supabase';
 
 export default function AiSkillGap({ data }) {
   const { dbUser } = useAuth();
@@ -22,10 +23,12 @@ export default function AiSkillGap({ data }) {
           weekly_solves: data.practiceConsistency.weeklySolves
         };
 
-        const res = await axios.post('/api/ai/skill-gap', { 
-          userId: dbUser.id,
-          metrics 
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const res = await axios.post('/api/ai/skill-gap', 
+          { metrics },
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        );
         setAnalysis(res.data.analysis);
       } catch (err) {
         setError(err.response?.data?.error || err.message);

@@ -131,6 +131,10 @@ router.post('/', async (req, res) => {
   if (!Array.isArray(tests) || tests.length === 0)
     return res.status(400).json({ error: 'tests array is required' });
 
+  const MAX_TEST_CASES = 20;
+  if (tests.length > MAX_TEST_CASES)
+    return res.status(400).json({ error: `Too many test cases. Maximum allowed is ${MAX_TEST_CASES}.` });
+
   const compiler = COMPILER_MAP[language];
   if (!compiler)
     return res.status(400).json({ error: `Unsupported language: ${language}` });

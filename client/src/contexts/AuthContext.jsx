@@ -84,10 +84,11 @@ export function AuthProvider({ children }) {
     if (!user) return { error: 'Not logged in' };
     
     try {
-      const res = await axios.post('/api/auth/sync', {
-        userId: user.id,
-        handle
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await axios.post('/api/auth/sync', 
+        { handle },
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
       // Refresh DB user to get the new cf_handle
       await fetchDbUser(user);
       return { success: true, count: res.data.count };

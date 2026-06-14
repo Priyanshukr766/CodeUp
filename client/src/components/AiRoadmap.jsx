@@ -3,6 +3,7 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import { Target, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../utils/supabase';
 
 export default function AiRoadmap({ data }) {
   const { dbUser } = useAuth();
@@ -24,11 +25,12 @@ export default function AiRoadmap({ data }) {
         weak_tags: data.weaknesses
       };
 
-      const res = await axios.post('/api/ai/roadmap', {
-        userId: dbUser.id,
-        metrics,
-        targetRating: parseInt(targetRating, 10)
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const res = await axios.post('/api/ai/roadmap', 
+        { metrics, targetRating: parseInt(targetRating, 10) },
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
       
       setRoadmap(res.data.roadmap);
     } catch (err) {

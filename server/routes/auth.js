@@ -10,10 +10,11 @@ const router = Router();
 // 2. Fetches their accepted submissions from Codeforces
 // 3. Upserts them into user_solved_problems
 router.post('/sync', async (req, res) => {
-  const { userId, handle } = req.body;
+  const userId = req.user.id;
+  const { handle } = req.body;
 
-  if (!userId || !handle) {
-    return res.status(400).json({ error: 'userId and handle are required.' });
+  if (!handle) {
+    return res.status(400).json({ error: 'handle is required.' });
   }
 
   try {

@@ -12,6 +12,7 @@ import authRouter from './routes/auth.js';
 import syncRouter from './routes/sync.js';
 import analyticsRouter from './routes/analytics.js';
 import aiRouter from './routes/ai.js';
+import { requireAuth } from './middleware/requireAuth.js';
 
 dotenv.config();
 
@@ -43,10 +44,10 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api/problem', problemRouter);
 app.use('/api/run', runRouter);
 app.use('/api/contest', contestRouter);
-app.use('/api/auth', authRouter);
+app.use('/api/auth', requireAuth, authRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/analytics', analyticsRouter);
-app.use('/api/ai', aiRouter);
+app.use('/api/ai', requireAuth, aiRouter);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
