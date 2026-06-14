@@ -11,7 +11,6 @@ CodeUp bridges the gap between Codeforces' incredible problem repository and the
 ## ✨ Features
 
 - 🚀 **Instant Problem Fetching:** Paste a Codeforces URL or a simple ID (e.g., `1984A`) to instantly load the full problem statement, limits, and sample tests.
-- 🛡️ **Cloudflare-Bypass Scraper:** A robust Playwright-based Python scraper guarantees reliable fetching even when Codeforces is heavily protected.
 - 🏃‍♂️ **1-Click Execution:** Run your C++, C, Java, or Python code against all sample test cases concurrently.
 - 🤖 **AI Coach (Gemini 2.5 Flash):** Get personalized 4-week study roadmaps and skill gap analyses based on your current rating, strengths, and weaknesses.
 - ⚡ **Blazing Fast Caching:** Scraped problems are cached in **Redis** (48h TTL) for instant reloads, and AI recommendations are cached in **Supabase** to save API costs.
