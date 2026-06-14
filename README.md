@@ -103,6 +103,17 @@ Visit `http://localhost:5173` to start solving!
 
 ---
 
+## Disclaimer
+
+This is a personal/educational project and is not affiliated with, 
+endorsed by, or sponsored by Codeforces. Problem data is fetched for 
+personal practice and learning purposes only. Problem statements are 
+cached temporarily to reduce load on Codeforces' 
+servers and are not permanently stored. All problem content remains the 
+property of Codeforces and its problem setters.
+
+---
+
 <div align="center">
   <i>Built with ❤️ for Competitive Programmers.</i>
 </div>
