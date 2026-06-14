@@ -90,6 +90,13 @@ export default function Login() {
             Continue with Google
           </button>
         </motion.div>
+
+        <div style={{ position: 'absolute', bottom: '24px', width: '100%', textAlign: 'center', zIndex: 1, color: 'rgba(255,255,255,0.6)', fontSize: '12px', padding: '0 20px', lineHeight: '1.5' }}>
+          CodeUp is an independent educational project, not affiliated with Codeforces.<br />
+          It is built for learning purposes, and problem data is sourced from 
+          Codeforces for personal practice, cached temporarily— not 
+          permanently stored.
+        </div>
       </div>
     );
   }
@@ -195,6 +202,11 @@ export default function Login() {
             </motion.p>
           )}
         </motion.div>
+
+        <div style={{ position: 'absolute', bottom: '24px', width: '100%', textAlign: 'center', zIndex: 1, color: 'rgba(255,255,255,0.6)', fontSize: '12px', padding: '0 20px', lineHeight: '1.5' }}>
+          CodeUp is an independent educational project, not affiliated with Codeforces.<br />
+          Problem data is sourced from Codeforces for personal practice and cached temporarily—not permanently stored.
+        </div>
       </div>
     );
   }
