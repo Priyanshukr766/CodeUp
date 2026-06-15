@@ -92,7 +92,7 @@ export default function Login() {
         </motion.div>
 
         <div style={{ position: 'absolute', bottom: '24px', width: '100%', textAlign: 'center', zIndex: 1, color: 'rgba(255,255,255,0.6)', fontSize: '12px', padding: '0 20px', lineHeight: '1.5' }}>
-          CodeUp is an independent educational project, not affiliated with Codeforces.<br />
+          CodeUp is an educational project.<br />
           It is built for learning purposes, and problem data is sourced from 
           Codeforces for personal practice, cached temporarily— not 
           permanently stored.
