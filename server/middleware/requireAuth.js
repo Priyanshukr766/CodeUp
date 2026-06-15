@@ -5,10 +5,7 @@ dotenv.config();
 
 // A client configured with the ANON key is sufficient for verifying user JWTs.
 // Do NOT use the service role key here.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-const supabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
+let supabaseAuthClient = null;
 
 /**
  * Express middleware that verifies the Supabase access token sent in the
@@ -24,6 +21,19 @@ export async function requireAuth(req, res, next) {
 
   if (!token) {
     return res.status(401).json({ error: 'Missing or invalid Authorization header.' });
+  }
+
+  // Lazy initialization of the auth client
+  if (!supabaseAuthClient) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[requireAuth] CRITICAL: SUPABASE_ANON_KEY or SUPABASE_URL is missing in environment variables.');
+      return res.status(500).json({ error: 'Server authentication configuration is missing.' });
+    }
+    
+    supabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey);
   }
 
   const { data, error } = await supabaseAuthClient.auth.getUser(token);
