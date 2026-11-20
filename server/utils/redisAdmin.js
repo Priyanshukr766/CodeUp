@@ -13,13 +13,15 @@ let redisClient = null;
 
 if (redisUrl) {
   redisClient = createClient({
-    url: redisUrl
+    url: redisUrl,
+    disableOfflineQueue: true,
   });
 
-  redisClient.on('error', (err) => console.error('[Redis Client Error]', err));
+  redisClient.on('error', (err) => console.error('[Redis Client Error]', err.message || err));
+  redisClient.on('ready', () => console.log('[Redis] Connected and ready to serve'));
   
   // Connect immediately
-  redisClient.connect().catch(console.error);
+  redisClient.connect().catch((err) => console.error('[Redis] Initial connect error:', err.message || err));
 } else {
   console.warn('[Redis] No REDIS_URL found in .env. Caching will be disabled.');
 }
